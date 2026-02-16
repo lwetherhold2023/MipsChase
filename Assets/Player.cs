@@ -119,10 +119,10 @@ public class Player : MonoBehaviour
                 HandleMoveFast();
                 break;
             case eState.kDiving:
-                //HandleDiving();
+                HandleDiving();
                 break;
             case eState.kRecovering:
-                //HandleRecovering();
+                HandleRecovering();
                 break;
         }
 
@@ -176,6 +176,7 @@ public class Player : MonoBehaviour
         }
     }
 
+    // helper function to handle move fast state
     void HandleMoveFast()
     {
         // update input direction and requested speed
@@ -248,43 +249,58 @@ public class Player : MonoBehaviour
         }
     }
 
-    /*
+    // helper function to handle diving state
     void HandleDiving()
     {
+        // calculate elapsed time since dive started
+        float fElapsedTime = Time.time - m_fDiveStartTime;
+
         // compute dive progress (0 to 1) using time (based on elapsed time)
-        float fProgress = (Time.time - m_fDiveStartTime) / m_fDiveTime;
-        // interpolate position from dive start to dive end
+        // calculate progress as a ratio of elapsed time to dive time
+        float fProgress = fElapsedTime / m_fDiveTime;
+
+        // clamp progress to be between 0 and 1
+        fProgress = Mathf.Clamp(fProgress, 0.0f, 1.0f);
+
+        // keep speed at 0 during dive
+        m_fSpeed = 0.0f;
+
+        // SET POSITION: interpolate position from dive start to dive end based on progress
         transform.position = Vector3.Lerp(m_vDiveStartPos, m_vDiveEndPos, fProgress);
-        // if dive time finished, switch to recovering state and record recovery start time
+
+        // NOTE: during dive, player already moves with above Lerp() interpolation
+        // (dive motion is fully controlled by the lerp path/timeline)
+        // (SOO, m_fSpeed is not needed to move during dive at all)
+
+        // SET SPEED: calculate current speed / update speed based on progress
+        //m_fSpeed = Mathf.Lerp(0.0f, m_fMaxSpeed, fProgress);
+
+        // when progress reaches 1, dive time is finished
+        // if dive time finished, switch to recovering state and record/store recovery start time
         if (fProgress >= 1.0f)
         {
             m_nState = eState.kRecovering;
-            m_fRecoveryStartTime = Time.time;
+            m_fDiveStartTime = Time.time; // BECOMES RECOVERY START TIME
+            //m_fRecoveryStartTime = Time.time; // NOTE: NO MEMBER FIELD EXISTS FOR THIS
         }
-        // update speed based on progress
-        m_fSpeed = Mathf.Lerp(0.0f, m_fMaxSpeed, fProgress);
-        // calculate elapsed time since dive started
-        float fElapsedTime = Time.time - m_fDiveStartTime;
-        // calculate progress as a ratio of elapsed time to dive time
-        float fProgress = fElapsedTime / m_fDiveTime;
-        // calculate current speed based on progress
-        m_fSpeed = Mathf.Lerp(0.0f, m_fMaxSpeed, fProgress);
-        // update position based on current speed and direction
-        transform.position += transform.right * m_fSpeed * Time.deltaTime;
     }
 
     void HandleRecovering()
     {
-        // prevent movement during recovery state
+        // prevent movement during recovery state (forced!!)
         m_fSpeed = 0.0f;
-        // if recovery time finished, switch to move slow state and reset speed if needed
-        if (Time.time - m_fRecoveryStartTime >= m_fDiveRecoveryTime)
+
+        // do not update direction/speed or allow for a dive
+
+        // check elapsed recovery time 
+        float fElapsedRecoveryTime = Time.time - m_fDiveStartTime; // NOTE: m_fDiveStartTime BECOMES RECOVERY START TIME
+
+        // if recovery time finished, switch to move slow state // NOTE: NOT NEEDED ... and reset speed if needed
+        if (fElapsedRecoveryTime >= m_fDiveRecoveryTime)
+        //if (Time.time - m_fRecoveryStartTime >= m_fDiveRecoveryTime) // NOTE: NO MEMBER FIELD EXISTS FOR THIS
         {
             m_nState = eState.kMoveSlow;
-            m_fSpeed = 0.0f;
+            //m_fSpeed = 0.0f; // NOTE: NO NEED TO RESET SPEED HERE
         }
-        // update position based on current speed and direction
-        transform.position += transform.right * m_fSpeed * Time.deltaTime;
     }
-    */
 }
